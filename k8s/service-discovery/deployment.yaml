@@ -25,6 +25,8 @@ spec:
               value: "dev"
             - name: JAVA_OPTS
               value: "-Xms256m -Xmx512m"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://cloud-config:9296"
           resources:
             requests:
               memory: "512Mi"

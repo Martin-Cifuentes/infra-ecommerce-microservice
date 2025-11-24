@@ -27,6 +27,8 @@ spec:
               value: "-Xms256m -Xmx512m"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://service-discovery:8761/eureka/"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: "http://cloud-config:9296"
           resources:
             requests:
               memory: "512Mi"
