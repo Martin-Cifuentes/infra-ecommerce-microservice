@@ -2,7 +2,7 @@
 # Customize these values according to your needs
 
 resource_group_name = "ecommerce-microservices-rg"
-location            = "eastus"  # Cambiar según tu región preferida
+location            = "eastus2"  # Cambiar según tu región preferida
 environment         = "dev"
 
 aks_cluster_name = "ecommerce-aks-cluster"
