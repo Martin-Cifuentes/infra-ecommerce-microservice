@@ -37,6 +37,12 @@ spec:
               value: ""
             - name: LOGGING_LOGSTASH_TCPSOCKET_ENABLED
               value: "false"
+            - name: SERVER_SERVLET_CONTEXT_PATH
+              value: "/"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,info"
+            - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED
+              value: "true"
           resources:
             requests:
               memory: "512Mi"
