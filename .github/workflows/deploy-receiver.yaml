@@ -1,0 +1,104 @@
+name: Infra Deploy Receiver (AKS)
+
+on:
+  repository_dispatch:
+    types: [deploy-to-aks]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment and derive AKS settings from tfvars
+        id: cfg
+        run: |
+          ENV="${{ github.event.client_payload.environment || inputs.environment }}"
+          case "$ENV" in
+            dev)
+              TAG="dev"
+              PROFILE="dev"
+              ENV_DIR="dev"
+              ;;
+            staging)
+              TAG="stage"
+              PROFILE="stage"
+              ENV_DIR="stage"
+              ;;
+            production)
+              TAG="master"
+              PROFILE="prod"
+              ENV_DIR="prod"
+              ;;
+            *)
+              echo "Unknown environment: $ENV"; exit 1
+              ;;
+          esac
+
+          FILE="terraform/envs/${ENV_DIR}/terraform.tfvars"
+          RG=$(grep '^resource_group_name' "$FILE" | awk -F\" '{print $2}')
+          CLUSTER=$(grep '^aks_cluster_name' "$FILE" | awk -F\" '{print $2}')
+
+          echo "env=${ENV}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "profile=${PROFILE}" >> $GITHUB_OUTPUT
+          echo "rg=${RG}" >> $GITHUB_OUTPUT
+          echo "cluster=${CLUSTER}" >> $GITHUB_OUTPUT
+
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ steps.cfg.outputs.rg }}
+          cluster-name: ${{ steps.cfg.outputs.cluster }}
+
+      - name: Update image tags and profiles in manifests
+        run: |
+          TAG="${{ steps.cfg.outputs.tag }}"
+          PROFILE="${{ steps.cfg.outputs.profile }}"
+          for svc in api-gateway cloud-config service-discovery user-service product-service order-service; do
+            file="k8s/${svc}/deployment.yaml"
+            if [ -f "$file" ]; then
+              sed -i "s|\(image: .*\):.*$|\1:${TAG}|g" "$file"
+              sed -i "s|value: \"dev\"|value: \"${PROFILE}\"|g" "$file"
+            fi
+          done
+
+      - name: Deploy Infra Services
+        run: |
+          kubectl apply -f k8s/zipkin/deployment.yaml
+          kubectl apply -f k8s/service-discovery/deployment.yaml
+          kubectl apply -f k8s/cloud-config/deployment.yaml
+          kubectl rollout status deployment/service-discovery --timeout=240s || true
+          kubectl rollout status deployment/cloud-config --timeout=240s || true
+
+      - name: Deploy Business Services
+        run: |
+          for svc in user-service product-service order-service api-gateway; do
+            kubectl apply -f k8s/${svc}/deployment.yaml
+            kubectl rollout status deployment/${svc} --timeout=300s || true
+          done
+
+      - name: Summary
+        run: |
+          API_IP=$(kubectl get service api-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+          echo "## AKS Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ steps.cfg.outputs.env }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | ${{ steps.cfg.outputs.tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AKS RG | ${{ steps.cfg.outputs.rg }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AKS Cluster | ${{ steps.cfg.outputs.cluster }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| API Gateway IP | ${API_IP} |" >> $GITHUB_STEP_SUMMARY
