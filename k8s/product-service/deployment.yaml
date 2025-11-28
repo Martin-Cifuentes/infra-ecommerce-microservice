@@ -38,7 +38,7 @@ spec:
             - name: LOGGING_LOGSTASH_TCPSOCKET_ENABLED
               value: "false"
             - name: SERVER_SERVLET_CONTEXT_PATH
-              value: "/"
+              value: "/product-service"
             - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
               value: "health,info"
             - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED
@@ -52,7 +52,7 @@ spec:
               cpu: "500m"
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /product-service/actuator/health
               port: 8500
             initialDelaySeconds: 180
             periodSeconds: 30
@@ -60,7 +60,7 @@ spec:
             failureThreshold: 5
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /product-service/actuator/health
               port: 8500
             initialDelaySeconds: 150
             periodSeconds: 5

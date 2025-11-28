@@ -35,6 +35,24 @@ spec:
               value: "false"
             - name: SPRING_CONFIG_IMPORT
               value: ""
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_ID
+              value: "PRODUCT-SERVICE-DNS"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_URI
+              value: "http://product-service:8500"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0
+              value: "Path=/product-service/**"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_ID
+              value: "USER-SERVICE-DNS"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_URI
+              value: "http://user-service:8700"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0
+              value: "Path=/user-service/**"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_ID
+              value: "ORDER-SERVICE-DNS"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_URI
+              value: "http://order-service:8300"
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0
+              value: "Path=/order-service/**"
           resources:
             requests:
               memory: "512Mi"
